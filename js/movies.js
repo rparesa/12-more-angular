@@ -1,6 +1,6 @@
 'use strict';
 
-var myApp = angular.module('MoviesApp', ['ngSanitize', 'ui.router']);
+var myApp = angular.module('MoviesApp', ['ngSanitize', 'ui.router', 'ui.bootstrap']);
 
 //configure routes
 myApp.config(['$stateProvider', '$urlRouterProvider', function ($stateProvider, $urlRouterProvider) {
@@ -23,6 +23,11 @@ myApp.config(['$stateProvider', '$urlRouterProvider', function ($stateProvider, 
 			url: '/details/:movie',
 			templateUrl: 'partials/movie-detail.html',
 			controller: 'DetailsCtrl'
+		})
+		.state('watchlist', {
+			url: '/watchlist',
+			templateUrl: 'partials/watchlist.html',
+			controller:'WatchListCtrl'
 		})
 		$urlRouterProvider.otherwise('/home');
 }]);
@@ -82,24 +87,80 @@ myApp.controller('DetailsCtrl', ['$scope', '$stateParams', '$filter', '$http', f
 		$scope.movie.Poster = response.data.Poster;
 		$scope.movie.Plot = response.data.Plot;
 	});
+
+	
+  $scope.saveMovie = function(movie){
+     //save movie to watchlist
+     movie.priority = 2; //default
+     
+     $scope.watchList.push(movie);
+
+  };
 }]);
 
 
 //For to-watch list
-myApp.controller('WatchListCtrl', ['$scope', '$http', function ($scope, $http) {
+myApp.controller('WatchListCtrl', ['$scope', '$http', '$uibModal', function ($scope, $http, $uibModal) {
 
 	//"constants" for priority setting
 	$scope.priorities = ['Very High', 'High', 'Medium', 'Low', 'Very Low'];
 	$scope.priority = 'Medium'; //default
 
+	$scope.watchlist =[];
 	//run a search query
 	$scope.searchFilms = function () {
 
 		var omdbUri = 'http://www.omdbapi.com/?s=' + $scope.searchQuery + '&type=movie';
 		$http.get(omdbUri).then(function (response) {
-			console.log(response.data.Search); //response is inside the Search field
 
+			console.log(response.data.Search); //response is inside the Search field
+			
+			$scope.searchResults = response.data.Search;
+			$scope.movies = $scope.searchResults;
+
+			//show modal!
+		var modalInstance = $uibModal.open({
+  		 	templateUrl: 'partials/select-movie-modal.html', //partial to show
+  		 	controller: 'ModalCtrl', //controller for the modal
+  		 	scope: $scope //pass in all our scope variables!
 		});
+		//When the modal closes (with a result)
+		modalInstance.result.then(function(selectedItem) {
+			$scope.movie = selectedItem;
+			console.log("now selected: ", $scope.ovie)
+ 		  //do something with
+  		 //selected item
+		});
+	});
+
+	}; //end of searchFilms
+	$scope.saveFilm = function(movie, priority){
+		$scope.watchlist.push(movie);
+		$scope.movie = undefined;
 	};
+
 }]);
 
+myApp.controller('ModalCtrl', ['$scope', '$uibModalInstance', function($scope, $uibModalInstance) {
+	$scope.select=function(movie){
+		$scope.selectedMovie = movie;
+		console.log('You selected', movie);
+
+		$scope.ok = function(){
+ 			$uibModalInstance.close($scope.selectedMovie);
+		}
+
+		$scope.cancel = function(){
+			$uibModalInstance.dismiss('cancel');
+		}
+	}
+
+}])
+
+//define a service factory with the .factory() method
+myApp.factory('watchListService', function() {
+
+  var service = {}; //object that is the service
+
+  return service; //return ("build") that service
+});
