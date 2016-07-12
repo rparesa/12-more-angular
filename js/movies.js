@@ -64,7 +64,7 @@ myApp.controller('BlogCtrl', ['$scope', '$http', '$filter', function ($scope, $h
 }]);
 
 //For movie details
-myApp.controller('DetailsCtrl', ['$scope', '$stateParams', '$filter', '$http', function ($scope, $stateParams, $filter, $http) {
+myApp.controller('DetailsCtrl', ['$scope', '$stateParams', '$filter', '$http', 'WatchListService',function ($scope, $stateParams, $filter, $http, WatchListService) {
 	//console.log($stateParams.movie);
 
   $http.get('data/movies-2015.json').then(function (response) {
@@ -91,22 +91,21 @@ myApp.controller('DetailsCtrl', ['$scope', '$stateParams', '$filter', '$http', f
 	
   $scope.saveMovie = function(movie){
      //save movie to watchlist
-     movie.priority = 2; //default
      
-     $scope.watchList.push(movie);
+     WatchListService.addMovie(movie);
 
   };
 }]);
 
 
 //For to-watch list
-myApp.controller('WatchListCtrl', ['$scope', '$http', '$uibModal', function ($scope, $http, $uibModal) {
+myApp.controller('WatchListCtrl', ['$scope', '$http', '$uibModal', 'WatchListService', function ($scope, $http, $uibModal, WatchListService) {
 
 	//"constants" for priority setting
 	$scope.priorities = ['Very High', 'High', 'Medium', 'Low', 'Very Low'];
 	$scope.priority = 'Medium'; //default
 
-	$scope.watchlist =[];
+	$scope.watchlist = WatchListService.watchlist;
 	//run a search query
 	$scope.searchFilms = function () {
 
@@ -127,7 +126,7 @@ myApp.controller('WatchListCtrl', ['$scope', '$http', '$uibModal', function ($sc
 		//When the modal closes (with a result)
 		modalInstance.result.then(function(selectedItem) {
 			$scope.movie = selectedItem;
-			console.log("now selected: ", $scope.ovie)
+			console.log("now selected: ", $scope.movie)
  		  //do something with
   		 //selected item
 		});
@@ -135,7 +134,7 @@ myApp.controller('WatchListCtrl', ['$scope', '$http', '$uibModal', function ($sc
 
 	}; //end of searchFilms
 	$scope.saveFilm = function(movie, priority){
-		$scope.watchlist.push(movie);
+		WatchListService.addMovie(movie);
 		$scope.movie = undefined;
 	};
 
@@ -155,12 +154,27 @@ myApp.controller('ModalCtrl', ['$scope', '$uibModalInstance', function($scope, $
 		}
 	}
 
-}])
+}]);
 
 //define a service factory with the .factory() method
-myApp.factory('watchListService', function() {
+myApp.factory('WatchListService', function() {
 
   var service = {}; //object that is the service
+
+
+  if(localStorage.watchlist !== undefined){
+	  service.watchlist = JSON.parse(localStorage.watchlist);
+	 // console.log("loaded ", service.watchlist)
+  } else {
+	  service.watchlist = [];
+  }
+
+
+  service.addMovie = function(movie){
+	  service.watchlist.push(movie);
+	  localStorage.watchlist = JSON.stringify(service.watchlist);
+	  //console.log("saved ", localStorage.watchlist);
+  }
 
   return service; //return ("build") that service
 });
